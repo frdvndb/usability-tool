@@ -7,7 +7,7 @@ import gspread
 import uuid  # Library untuk membuat ID acak
 
 # ==========================================
-# 1. SETUP HALAMAN
+# 1. SETUP HALAMAN & CSS
 # ==========================================
 st.set_page_config(
     page_title="Usability Guide", 
@@ -15,6 +15,7 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed" 
 )
+
 # ==========================================
 # 2. FUNGSI GOOGLE SHEETS (MODE BATCH)
 # ==========================================
@@ -228,11 +229,31 @@ else:
     st.write("**📝 Laporan Pengguna:**")
     col1, col2 = st.columns(2)
     with col1:
-        st.number_input("Total Klik", min_value=0, key="inp_click")
-        st.number_input("Total Kesalahan", min_value=0, key="inp_error")
+        st.number_input(
+            "Total Klik", 
+            min_value=0, 
+            key="inp_click",
+            help="Jumlah seluruh klik yang dilakukan pengguna (Baik klik yang benar maupun salah)."
+        )
+        st.number_input(
+            "Total Kesalahan", 
+            min_value=0, 
+            key="inp_error",
+            help="Jumlah tindakan yang menyimpang dari alur tugas (Misal: salah masuk menu, salah input data)."
+        )
     with col2:
-        st.number_input("Klik Tidak Perlu", min_value=0, key="inp_click_bad")
-        st.selectbox("Status", ["SUKSES", "GAGAL"], key="inp_status")
+        st.number_input(
+            "Klik Tidak Perlu", 
+            min_value=0, 
+            key="inp_click_bad",
+            help="Jumlah klik pemborosan yang tidak memajukan tugas (Misal: tombol kembali/back, klik area kosong, atau tombol close)."
+        )
+        st.selectbox(
+            "Status", 
+            ["SUKSES", "GAGAL"], 
+            key="inp_status",
+            help="Sukses: Pengguna berhasil menyelesaikan langkah ini. Gagal: Pengguna menyerah atau tidak bisa melanjutkan."
+        )
 
     st.write("")
     st.button("✅LANJUT", on_click=next_step, type="primary", use_container_width=True)
