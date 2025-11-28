@@ -10,31 +10,6 @@ import gspread
 # ==========================================
 st.set_page_config(page_title="Usability Guide", page_icon="📱", layout="centered")
 
-# CSS: Tampilan Bersih & Teks Hitam
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            .stApp {background-color: #f0f2f6;}
-            div[data-testid="stVerticalBlock"] > div {
-                background-color: #ffffff;
-                padding: 20px;
-                border-radius: 15px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            }
-            h1, h2, h3, h4, h5, h6, p, label, span, div, li, textarea {
-                color: #31333F !important;
-            }
-            input, textarea, div[data-baseweb="select"] {
-                color: #31333F !important;
-                background-color: #ffffff !important;
-                border: 1px solid #d6d6d6;
-            }
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
 # ==========================================
 # 2. FUNGSI GOOGLE SHEETS
 # ==========================================
@@ -69,14 +44,20 @@ if 'last_lap_time' not in st.session_state: st.session_state.last_lap_time = 0
 if 'log_data' not in st.session_state: st.session_state.log_data = []
 
 # ==========================================
-# 4. ADMIN PANEL (DINAMIS - DIPERBARUI)
+# 4. ADMIN PANEL (DINAMIS)
 # ==========================================
 with st.sidebar:
     st.header("⚙️ Admin Panel")
     
     # A. CONFIG JUMLAH HALAMAN
+    # Disesuaikan dengan skenario Anda:
+    # Tugas 1 (Login): 3 Hal
+    # Tugas 2 (Cari Nakes): 3 Hal
+    # Tugas 3 (Sertifikat): 4 Hal
+    # Tugas 4 (IMT): 3 Hal
+    # Tugas 5 (Tiket): 3 Hal
     st.subheader("1. Struktur Tugas")
-    config_input = st.text_input("Jml Halaman per Tugas (koma)", value="3, 3, 4, 3, 5")
+    config_input = st.text_input("Jml Halaman per Tugas (koma)", value="3, 3, 4, 3, 3")
     try:
         tasks_config = [int(x.strip()) for x in config_input.split(',') if x.strip().isdigit()]
     except:
@@ -86,7 +67,7 @@ with st.sidebar:
     st.subheader("2. Teks Panduan")
     st.caption("Format per baris -> Tugas-Hal : Instruksi")
     
-    # --- UPDATE INSTRUKSI DISINI ---
+    # Skenario Default yang sudah digabungkan sesuai permintaan
     default_scenario = """1-1 : Pengguna mengklik tombol Masuk.
 1-2 : Pengguna memasukkan nomor telepon atau email.
 1-3 : Pengguna mengklik tombol Masuk, lalu memasukkan PIN.
@@ -106,31 +87,19 @@ with st.sidebar:
 5-4 : Pilih lokasi di peta dan klik tombol Simpan.
 5-5 : Masukkan kata kunci tempat kesehatan, lalu pilih salah satu tempat."""
 
-    scenario_raw = st.text_area("Edit Skenario Disini:", value=default_scenario, height=450)
+    scenario_raw = st.text_area("Edit Skenario Disini:", value=default_scenario, height=400)
     
-    # Parsing Teks
+    # Parsing Teks menjadi Dictionary Python
     SCENARIO_GUIDE = {}
     for line in scenario_raw.split('\n'):
         if ':' in line:
+            # Memisahkan "1-1" dengan "Instruksinya"
             parts = line.split(':', 1) 
             key = parts[0].strip()
             val = parts[1].strip()
             SCENARIO_GUIDE[key] = val
-    
-    st.divider()
-    
-    # --- FITUR BACKUP DOWNLOAD (DI SIDEBAR) ---
-    if len(st.session_state.log_data) > 0:
-        st.subheader("📥 Backup Data")
-        df_backup = pd.DataFrame(st.session_state.log_data)
-        csv_backup = df_backup.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "Download CSV Backup",
-            csv_backup,
-            f"Backup_{datetime.now().strftime('%H%M')}.csv",
-            "text/csv"
-        )
 
+    st.success(f"Terdeteksi {len(SCENARIO_GUIDE)} langkah instruksi.")
 # ==========================================
 # 5. LOGIKA APLIKASI
 # ==========================================
@@ -154,29 +123,16 @@ def next_step():
     error_total = st.session_state.get("inp_error", 0)
     status = st.session_state.get("inp_status", "SUKSES")
     
-    # Simpan Data Sementara
-    record = {
-        "Tugas Ke": idx + 1,
-        "Halaman Ke": st.session_state.current_page_num,
-        "Status": status,
-        "Durasi": round(duration, 2),
-        "Klik Total": click_total,
-        "Klik Bad": click_bad,
-        "Error": error_total,
-        "Timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    }
-    st.session_state.log_data.append(record)
-
-    # Format Data (Untuk Sheets)
+    # Format Data
     row = [[
-        record["Tugas Ke"], 
-        record["Halaman Ke"], 
-        record["Status"], 
-        str(record["Durasi"]).replace('.', ','), 
-        record["Klik Total"], 
-        record["Klik Bad"], 
-        record["Error"], 
-        record["Timestamp"]
+        idx + 1, 
+        st.session_state.current_page_num, 
+        status, 
+        str(round(duration, 2)).replace('.', ','), 
+        click_total, 
+        click_bad, 
+        error_total, 
+        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     ]]
     
     # Kirim ke Cloud
@@ -206,16 +162,18 @@ if not st.session_state.is_running:
     st.button("🚀 MULAI PANDUAN", on_click=start_test, type="primary", use_container_width=True)
 
 else:
-    # 1. Teks Panduan
+    # 1. Ambil Teks Panduan dari Input Admin
     idx = st.session_state.current_task_idx
     page_num = st.session_state.current_page_num
     
     guide_key = f"{idx + 1}-{page_num}"
+    
+    # Ambil teks, jika tidak ada di admin panel, pakai teks default
     instruction_text = SCENARIO_GUIDE.get(guide_key, "Lanjutkan langkah sesuai aplikasi.")
     
-    # 2. Kotak Panduan
+    # 2. Tampilkan Kotak Panduan
     st.markdown(f"""
-    <div style="background-color: #e8f4f8; padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px;">
+    <div style="padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px;">
         <h4 style="margin:0; color: #007bff; font-size: 14px; text-transform: uppercase;">Langkah {page_num}</h4>
         <h2 style="margin-top:5px; margin-bottom:0; font-size: 22px; font-weight: 600;">{instruction_text}</h2>
     </div>
@@ -241,28 +199,9 @@ else:
     st.write("")
     st.button("✅ SUDAH, LANJUT LANGKAH BERIKUTNYA", on_click=next_step, type="primary", use_container_width=True)
 
-# ==========================================
-# 7. SCREEN SELESAI & DOWNLOAD
-# ==========================================
+# SELESAI
 if not st.session_state.is_running and len(st.session_state.log_data) > 0:
     st.success("🎉 Tes Selesai! Terima kasih.")
-    st.caption("Semua data telah dikirim ke Google Sheets.")
-    
-    st.divider()
-    st.subheader("📥 Download File (Manual)")
-    
-    df_finish = pd.DataFrame(st.session_state.log_data)
-    csv_finish = df_finish.to_csv(index=False).encode('utf-8')
-    
-    st.download_button(
-        label="Download CSV (Excel)",
-        data=csv_finish,
-        file_name=f"Hasil_Usability_{datetime.now().strftime('%H%M%S')}.csv",
-        mime="text/csv",
-        type="primary"
-    )
-
-    st.divider()
-    if st.button("Mulai Ulang (Responden Baru)"):
+    if st.button("Mulai Ulang"):
         st.session_state.log_data = []
         st.rerun()
