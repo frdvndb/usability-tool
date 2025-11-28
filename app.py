@@ -199,9 +199,28 @@ else:
     st.write("")
     st.button("✅ SUDAH, LANJUT LANGKAH BERIKUTNYA", on_click=next_step, type="primary", use_container_width=True)
 
-# SELESAI
+# ==========================================
+# 7. SCREEN SELESAI & DOWNLOAD
+# ==========================================
 if not st.session_state.is_running and len(st.session_state.log_data) > 0:
     st.success("🎉 Tes Selesai! Terima kasih.")
-    if st.button("Mulai Ulang"):
+    st.caption("Semua data telah dikirim ke Google Sheets.")
+    
+    st.divider()
+    st.subheader("📥 Download File (Manual)")
+    
+    df_finish = pd.DataFrame(st.session_state.log_data)
+    csv_finish = df_finish.to_csv(index=False).encode('utf-8')
+    
+    st.download_button(
+        label="Download CSV (Excel)",
+        data=csv_finish,
+        file_name=f"Hasil_Usability_{datetime.now().strftime('%H%M%S')}.csv",
+        mime="text/csv",
+        type="primary"
+    )
+
+    st.divider()
+    if st.button("Mulai Ulang (Responden Baru)"):
         st.session_state.log_data = []
         st.rerun()
