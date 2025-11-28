@@ -8,18 +8,39 @@ import gspread
 # --- 1. KONFIGURASI HALAMAN ---
 st.set_page_config(page_title="Usability Test", page_icon="📱", layout="centered")
 
-# --- CSS: Tampilan App-like ---
+# --- CSS: Tampilan App-like & PERBAIKAN WARNA TEKS ---
 hide_streamlit_style = """
             <style>
+            /* 1. Sembunyikan elemen bawaan Streamlit */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
-            .stApp {background-color: #f8f9fa;}
+            
+            /* 2. Background Layar Utama (Abu-abu muda) */
+            .stApp {
+                background-color: #f0f2f6;
+            }
+            
+            /* 3. Style Kartu/Kotak Putih */
             div[data-testid="stVerticalBlock"] > div {
-                background-color: white;
+                background-color: #ffffff;
                 padding: 20px;
                 border-radius: 15px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
+
+            /* 4. SOLUSI UTAMA: Paksa semua teks jadi Hitam Gelap */
+            h1, h2, h3, h4, h5, h6, p, li, span, label, div {
+                color: #31333F !important;
+            }
+
+            /* 5. Perbaikan warna Input Box agar kontras */
+            input, .stNumberInput, .stSelectbox, .stTextInput {
+                color: #31333F !important; 
+            }
+            /* Memastikan teks di dalam dropdown/pilihan juga hitam */
+            div[data-baseweb="select"] span {
+                color: #31333F !important;
             }
             </style>
             """
