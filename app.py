@@ -207,7 +207,7 @@ else:
     
     # 2. Kotak Panduan
     st.markdown(f"""
-    <div style="padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px; background-color: #f0f2f6;">
+    <div style="padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px;">
         <h4 style="margin:0; color: #007bff; font-size: 14px; text-transform: uppercase;">Langkah {page_num}</h4>
         <h2 style="margin-top:5px; margin-bottom:0; font-size: 22px; font-weight: 600;">{instruction_text}</h2>
     </div>
@@ -231,13 +231,13 @@ else:
         st.selectbox("Status", ["SUKSES", "GAGAL"], key="inp_status")
 
     st.write("")
-    st.button("✅ SUDAH, LANJUT LANGKAH BERIKUTNYA", on_click=next_step, type="primary", use_container_width=True)
+    st.button("✅LANJUT", on_click=next_step, type="primary", use_container_width=True)
 
 # ==========================================
 # 7. SCREEN SELESAI & DOWNLOAD
 # ==========================================
 if not st.session_state.is_running and len(st.session_state.log_data) > 0:
-    st.success("🎉 Tes Selesai! Terima kasih.")
+    st.success("🎉 Tes Pertama atau kedua selesai! Terima kasih.")
     st.caption(f"User ID: {st.session_state.user_id}")
     st.caption("Data telah dikirim secara otomatis.")
     
