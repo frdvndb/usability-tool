@@ -126,7 +126,9 @@ def save_and_next():
     ok, msg = append_to_sheet(row_to_upload)
     
     if not ok:
-        st.error(f"⚠️ Gagal simpan ke Cloud: {msg}")
+        # Tampilkan error lengkap dalam kotak merah besar
+        st.error("TERJADI ERROR SAAT MENYIMPAN KE SHEETS:")
+        st.code(msg, language="text") # Ini akan menampilkan detail teknisnya
     else:
         # Tampilkan notifikasi kecil (Toast) agar tidak mengganggu
         st.toast(f"✅ Data Tugas {current_idx+1}-Hal {st.session_state.current_page_num} tersimpan!", icon="☁️")
