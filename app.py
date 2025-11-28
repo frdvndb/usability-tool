@@ -12,20 +12,18 @@ st.set_page_config(page_title="Usability Logger + Drive", page_icon="⏱️")
 
 # --- FUNGSI GOOGLE DRIVE UPLOAD ---
 def upload_to_drive(df, filename):
-    """
-    Fungsi untuk upload DataFrame pandas langsung ke Google Drive
-    sebagai file CSV.
-    """
     try:
-        # 1. Autentikasi menggunakan Secrets
-        # Pastikan Anda sudah setting secrets.toml di Streamlit
-        gcp_info = st.secrets["gcp_service_account"]
+        # 1. Ambil Secrets
+        gcp_info = dict(st.secrets["gcp_service_account"]) # Pakai dict() agar aman
+        folder_id = st.secrets["drive"]["folder_id"]
 
-        # Ini mengubah tulisan "\n" menjadi baris baru yang asli agar dikenali Google
+        # Debugging: Cek apakah ID Folder terbaca
+        if not folder_id:
+            return False, "Folder ID di secrets.toml KOSONG!"
+
+        # Fix Newline pada Private Key
         if "private_key" in gcp_info:
             gcp_info["private_key"] = gcp_info["private_key"].replace("\\n", "\n")
-
-        folder_id = st.secrets["drive"]["folder_id"]
         
         creds = service_account.Credentials.from_service_account_info(
             gcp_info, scopes=['https://www.googleapis.com/auth/drive']
@@ -33,23 +31,24 @@ def upload_to_drive(df, filename):
         
         service = build('drive', 'v3', credentials=creds)
 
-        # 2. Konversi DataFrame ke CSV String (Virtual File)
+        # 2. Siapkan File
         csv_buffer = io.BytesIO()
         df.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0) # Kembali ke awal file
+        csv_buffer.seek(0)
 
-        # 3. Metadata File (Nama dan Lokasi Folder)
+        # 3. Metadata File (PENTING: Parents harus list)
         file_metadata = {
             'name': filename,
-            'parents': [folder_id]
+            'parents': [folder_id]  # <--- Ini yang memaksa file masuk ke folder Anda
         }
 
-        # 4. Proses Upload
+        # 4. Upload dengan supportsAllDrives=True
         media = MediaIoBaseUpload(csv_buffer, mimetype='text/csv')
         file = service.files().create(
             body=file_metadata,
             media_body=media,
-            fields='id'
+            fields='id',
+            supportsAllDrives=True  # Tambahan agar lebih kompatibel
         ).execute()
 
         return True, file.get('id')
