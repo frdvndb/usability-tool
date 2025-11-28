@@ -4,16 +4,20 @@ import pandas as pd
 from datetime import datetime
 from google.oauth2 import service_account
 import gspread
+import uuid  # Library untuk membuat ID acak
 
 # ==========================================
-# 1. SETUP HALAMAN & CSS
+# 1. SETUP HALAMAN
 # ==========================================
 st.set_page_config(page_title="Usability Guide", page_icon="📱", layout="centered")
 
 # ==========================================
-# 2. FUNGSI GOOGLE SHEETS
+# 2. FUNGSI GOOGLE SHEETS (MODE BATCH)
 # ==========================================
-def append_to_sheet(new_row_data):
+def batch_upload_to_sheet(all_data_list):
+    """
+    Mengirim SEMUA data sekaligus di akhir sesi.
+    """
     try:
         gcp_info = dict(st.secrets["gcp_service_account"])
         if "private_key" in gcp_info:
@@ -29,7 +33,25 @@ def append_to_sheet(new_row_data):
         sheet_id = st.secrets["drive"]["sheet_id"] 
         sh = client.open_by_key(sheet_id)
         worksheet = sh.sheet1 
-        worksheet.append_rows(new_row_data)
+        
+        # Konversi List of Dicts menjadi List of Lists (Rows)
+        rows_to_upload = []
+        for record in all_data_list:
+            row = [
+                record["User ID"],   # <--- KOLOM 1: USER ID
+                record["Tugas Ke"],
+                record["Halaman Ke"],
+                record["Status"],
+                str(record["Durasi"]).replace('.', ','),
+                record["Klik Total"],
+                record["Klik Bad"],
+                record["Error"],
+                record["Timestamp"]
+            ]
+            rows_to_upload.append(row)
+
+        # Kirim Semua Sekaligus
+        worksheet.append_rows(rows_to_upload)
         return True, ""
     except Exception as e:
         return False, str(e)
@@ -43,12 +65,22 @@ if 'current_page_num' not in st.session_state: st.session_state.current_page_num
 if 'last_lap_time' not in st.session_state: st.session_state.last_lap_time = 0
 if 'log_data' not in st.session_state: st.session_state.log_data = []
 
+# --- BUAT USER ID DISINI ---
+if 'user_id' not in st.session_state:
+    # Membuat 8 karakter acak (contoh: a1b2c3d4)
+    st.session_state.user_id = str(uuid.uuid4())[:8]
+
 # ==========================================
-# 4. ADMIN PANEL (DINAMIS)
+# 4. ADMIN PANEL
 # ==========================================
 with st.sidebar:
     st.header("⚙️ Admin Panel")
     
+    # Tampilkan ID User saat ini (Untuk dicatat peneliti jika perlu)
+    st.info(f"🆔 **User ID:** `{st.session_state.user_id}`")
+    
+    st.divider()
+
     # A. CONFIG JUMLAH HALAMAN
     st.subheader("1. Struktur Tugas")
     config_input = st.text_input("Jml Halaman per Tugas (koma)", value="3, 3, 4, 3, 5")
@@ -115,8 +147,9 @@ def next_step():
     error_total = st.session_state.get("inp_error", 0)
     status = st.session_state.get("inp_status", "SUKSES")
     
-    # --- PERBAIKAN DISINI: Simpan ke Memory Lokal (Agar tombol download muncul) ---
+    # 1. SIMPAN KE MEMORI SEMENTARA (LOKAL)
     record = {
+        "User ID": st.session_state.user_id, # <--- User ID dimasukkan disini
         "Tugas Ke": idx + 1,
         "Halaman Ke": st.session_state.current_page_num,
         "Status": status,
@@ -127,32 +160,28 @@ def next_step():
         "Timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
     st.session_state.log_data.append(record)
-    # ----------------------------------------------------------------------------
-    
-    # Format Data untuk Google Sheets
-    row = [[
-        record["Tugas Ke"], 
-        record["Halaman Ke"], 
-        record["Status"], 
-        str(record["Durasi"]).replace('.', ','), 
-        record["Klik Total"], 
-        record["Klik Bad"], 
-        record["Error"], 
-        record["Timestamp"]
-    ]]
-    
-    # Kirim ke Cloud
-    ok, _ = append_to_sheet(row)
-    if ok: st.toast("✅ Tersimpan!", icon="💾")
-    else: st.toast("⚠️ Tersimpan Lokal", icon="ww")
+    st.toast(f"Langkah {st.session_state.current_page_num} Disimpan (Lokal)", icon="📥")
 
-    # Navigasi
+    # 2. NAVIGASI
     if st.session_state.current_page_num >= limit:
         st.session_state.current_task_idx += 1
         st.session_state.current_page_num = 1
+        
+        # 3. CEK FINISH (Jika ini tugas terakhir)
         if st.session_state.current_task_idx >= len(tasks_config):
             st.session_state.is_running = False
-            st.balloons()
+            
+            # --- UPLOAD MASSAL (BATCH) DISINI ---
+            with st.spinner("Sedang mengirim semua data ke Google Sheets..."):
+                ok, msg = batch_upload_to_sheet(st.session_state.log_data)
+                
+                if ok:
+                    st.balloons()
+                    st.success("✅ SEMUA DATA BERHASIL DIKIRIM KE GOOGLE SHEETS!")
+                else:
+                    st.error(f"Gagal kirim ke Cloud: {msg}")
+                    st.warning("Jangan tutup halaman! Silakan download manual di bawah.")
+            # ------------------------------------
     else:
         st.session_state.current_page_num += 1
     
@@ -165,6 +194,7 @@ st.title("📱 Usability Testing")
 
 if not st.session_state.is_running:
     st.info("👋 Selamat Datang. Aplikasi ini akan memandu Anda melakukan pengujian.")
+    st.caption(f"ID Sesi Anda: {st.session_state.user_id}")
     st.button("🚀 MULAI PANDUAN", on_click=start_test, type="primary", use_container_width=True)
 
 else:
@@ -175,9 +205,9 @@ else:
     guide_key = f"{idx + 1}-{page_num}"
     instruction_text = SCENARIO_GUIDE.get(guide_key, "Lanjutkan langkah sesuai aplikasi.")
     
-    # 2. Kotak Panduan (Warna Biru)
+    # 2. Kotak Panduan
     st.markdown(f"""
-    <div style="padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px;">
+    <div style="padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px; background-color: #f0f2f6;">
         <h4 style="margin:0; color: #007bff; font-size: 14px; text-transform: uppercase;">Langkah {page_num}</h4>
         <h2 style="margin-top:5px; margin-bottom:0; font-size: 22px; font-weight: 600;">{instruction_text}</h2>
     </div>
@@ -208,7 +238,8 @@ else:
 # ==========================================
 if not st.session_state.is_running and len(st.session_state.log_data) > 0:
     st.success("🎉 Tes Selesai! Terima kasih.")
-    st.caption("Semua data telah dikirim ke Google Sheets.")
+    st.caption(f"User ID: {st.session_state.user_id}")
+    st.caption("Data telah dikirim secara otomatis.")
     
     st.divider()
     st.subheader("📥 Download File (Manual)")
@@ -216,10 +247,18 @@ if not st.session_state.is_running and len(st.session_state.log_data) > 0:
     df_finish = pd.DataFrame(st.session_state.log_data)
     csv_finish = df_finish.to_csv(index=False).encode('utf-8')
     
+    # Nama file mengandung User ID
     st.download_button(
         label="Download CSV (Excel)",
         data=csv_finish,
-        file_name=f"Hasil_Usability_{datetime.now().strftime('%H%M%S')}.csv",
+        file_name=f"Hasil_{st.session_state.user_id}.csv",
         mime="text/csv",
         type="primary"
     )
+
+    # st.divider()
+    # if st.button("Mulai Ulang (Responden Baru)"):
+    #     # Reset data dan generate ID baru
+    #     st.session_state.log_data = []
+    #     del st.session_state.user_id 
+    #     st.rerun()
