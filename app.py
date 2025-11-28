@@ -50,24 +50,17 @@ with st.sidebar:
     st.header("⚙️ Admin Panel")
     
     # A. CONFIG JUMLAH HALAMAN
-    # Disesuaikan dengan skenario Anda:
-    # Tugas 1 (Login): 3 Hal
-    # Tugas 2 (Cari Nakes): 3 Hal
-    # Tugas 3 (Sertifikat): 4 Hal
-    # Tugas 4 (IMT): 3 Hal
-    # Tugas 5 (Tiket): 3 Hal
     st.subheader("1. Struktur Tugas")
-    config_input = st.text_input("Jml Halaman per Tugas (koma)", value="3, 3, 4, 3, 3")
+    config_input = st.text_input("Jml Halaman per Tugas (koma)", value="3, 3, 4, 3, 5")
     try:
         tasks_config = [int(x.strip()) for x in config_input.split(',') if x.strip().isdigit()]
     except:
         tasks_config = []
 
-    # B. CONFIG TEKS PANDUAN (SCENARIO GUIDE)
+    # B. CONFIG TEKS PANDUAN
     st.subheader("2. Teks Panduan")
     st.caption("Format per baris -> Tugas-Hal : Instruksi")
     
-    # Skenario Default yang sudah digabungkan sesuai permintaan
     default_scenario = """1-1 : Pengguna mengklik tombol Masuk.
 1-2 : Pengguna memasukkan nomor telepon atau email.
 1-3 : Pengguna mengklik tombol Masuk, lalu memasukkan PIN.
@@ -89,17 +82,16 @@ with st.sidebar:
 
     scenario_raw = st.text_area("Edit Skenario Disini:", value=default_scenario, height=400)
     
-    # Parsing Teks menjadi Dictionary Python
     SCENARIO_GUIDE = {}
     for line in scenario_raw.split('\n'):
         if ':' in line:
-            # Memisahkan "1-1" dengan "Instruksinya"
             parts = line.split(':', 1) 
             key = parts[0].strip()
             val = parts[1].strip()
             SCENARIO_GUIDE[key] = val
 
     st.success(f"Terdeteksi {len(SCENARIO_GUIDE)} langkah instruksi.")
+
 # ==========================================
 # 5. LOGIKA APLIKASI
 # ==========================================
@@ -123,16 +115,30 @@ def next_step():
     error_total = st.session_state.get("inp_error", 0)
     status = st.session_state.get("inp_status", "SUKSES")
     
-    # Format Data
+    # --- PERBAIKAN DISINI: Simpan ke Memory Lokal (Agar tombol download muncul) ---
+    record = {
+        "Tugas Ke": idx + 1,
+        "Halaman Ke": st.session_state.current_page_num,
+        "Status": status,
+        "Durasi": round(duration, 2),
+        "Klik Total": click_total,
+        "Klik Bad": click_bad,
+        "Error": error_total,
+        "Timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    st.session_state.log_data.append(record)
+    # ----------------------------------------------------------------------------
+    
+    # Format Data untuk Google Sheets
     row = [[
-        idx + 1, 
-        st.session_state.current_page_num, 
-        status, 
-        str(round(duration, 2)).replace('.', ','), 
-        click_total, 
-        click_bad, 
-        error_total, 
-        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        record["Tugas Ke"], 
+        record["Halaman Ke"], 
+        record["Status"], 
+        str(record["Durasi"]).replace('.', ','), 
+        record["Klik Total"], 
+        record["Klik Bad"], 
+        record["Error"], 
+        record["Timestamp"]
     ]]
     
     # Kirim ke Cloud
@@ -162,16 +168,14 @@ if not st.session_state.is_running:
     st.button("🚀 MULAI PANDUAN", on_click=start_test, type="primary", use_container_width=True)
 
 else:
-    # 1. Ambil Teks Panduan dari Input Admin
+    # 1. Teks Panduan
     idx = st.session_state.current_task_idx
     page_num = st.session_state.current_page_num
     
     guide_key = f"{idx + 1}-{page_num}"
-    
-    # Ambil teks, jika tidak ada di admin panel, pakai teks default
     instruction_text = SCENARIO_GUIDE.get(guide_key, "Lanjutkan langkah sesuai aplikasi.")
     
-    # 2. Tampilkan Kotak Panduan
+    # 2. Kotak Panduan (Warna Biru)
     st.markdown(f"""
     <div style="padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px;">
         <h4 style="margin:0; color: #007bff; font-size: 14px; text-transform: uppercase;">Langkah {page_num}</h4>
