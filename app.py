@@ -200,7 +200,7 @@ if not st.session_state.is_running:
     st.info("👋 Selamat Datang. Aplikasi ini akan memandu Anda melakukan pengujian.") 
     st.button("🚀 MULAI PANDUAN", on_click=start_test, type="primary", use_container_width=True)
     st.caption(f"ID Sesi Anda: {st.session_state.user_id}")
-    
+
 else:
     # 1. Teks Panduan
     idx = st.session_state.current_task_idx
@@ -229,7 +229,7 @@ else:
     col1, col2 = st.columns(2)
     with col1:
         st.number_input("Total Klik", min_value=0, key="inp_click")
-        st.number_input("Total Error", min_value=0, key="inp_error")
+        st.number_input("Total Kesalahan", min_value=0, key="inp_error")
     with col2:
         st.number_input("Klik Tidak Perlu", min_value=0, key="inp_click_bad")
         st.selectbox("Status", ["SUKSES", "GAGAL"], key="inp_status")
