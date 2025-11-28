@@ -35,40 +35,6 @@ DEFAULT_TEXT = "Silakan lanjutkan langkah sesuai alur aplikasi."
 # ==========================================
 st.set_page_config(page_title="Usability Guide", page_icon="📱", layout="centered")
 
-# CSS untuk:
-# 1. Menyembunyikan menu Streamlit
-# 2. Memaksa teks berwarna HITAM (agar terbaca di Dark Mode HP)
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            
-            /* Background Aplikasi */
-            .stApp {background-color: #f0f2f6;}
-            
-            /* Kartu Konten Putih */
-            div[data-testid="stVerticalBlock"] > div {
-                background-color: #ffffff;
-                padding: 20px;
-                border-radius: 15px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            }
-
-            /* Paksa Teks Jadi Hitam Gelap */
-            h1, h2, h3, h4, h5, h6, p, label, span, div, li {
-                color: #31333F !important;
-            }
-            
-            /* Input Field */
-            input[type="number"], div[data-baseweb="select"] {
-                color: #31333F !important;
-                background-color: #ffffff !important;
-                border: 1px solid #d6d6d6;
-            }
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # ==========================================
 # 3. FUNGSI KONEKSI GOOGLE SHEETS
