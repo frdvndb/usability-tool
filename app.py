@@ -197,10 +197,10 @@ def next_step():
 st.title("📱 Usability Testing")
 
 if not st.session_state.is_running:
-    st.info("👋 Selamat Datang. Aplikasi ini akan memandu Anda melakukan pengujian.")
-    st.caption(f"ID Sesi Anda: {st.session_state.user_id}")
+    st.info("👋 Selamat Datang. Aplikasi ini akan memandu Anda melakukan pengujian.") 
     st.button("🚀 MULAI PANDUAN", on_click=start_test, type="primary", use_container_width=True)
-
+    st.caption(f"ID Sesi Anda: {st.session_state.user_id}")
+    
 else:
     # 1. Teks Panduan
     idx = st.session_state.current_task_idx
