@@ -54,6 +54,10 @@ def cek_koneksi_folder():
     except Exception as e:
         return False, f"Robot TIDAK BISA menemukan folder ID **{folder_id}**. Pastikan ID benar dan sudah di-share ke email robot."
 
+# --- Update bagian Import di paling atas ---
+from googleapiclient.http import MediaIoBaseUpload
+
+# --- GANTI FUNGSI upload_to_drive DENGAN INI ---
 def upload_to_drive(df, filename):
     service, error = get_drive_service()
     if error: return False, error
@@ -61,25 +65,43 @@ def upload_to_drive(df, filename):
     folder_id = st.secrets["drive"]["folder_id"].strip()
     
     try:
+        # Konversi ke CSV
         csv_buffer = io.BytesIO()
         df.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0)
+        csv_buffer.seek(0) # Reset pointer
 
+        # Metadata
         file_metadata = {
             'name': filename,
-            'parents': [folder_id] # Ini kunci agar tidak masuk ke root robot
+            'parents': [folder_id]
         }
 
-        media = MediaIoBaseUpload(csv_buffer, mimetype='text/csv')
+        # --- PERBAIKAN DISINI: Resumable=True ---
+        # Ini mengubah metode upload menjadi bertahap, seringkali bypass limit kuota 0
+        media = MediaIoBaseUpload(
+            csv_buffer, 
+            mimetype='text/csv',
+            resumable=True  # <--- KUNCI PERBAIKANNYA
+        )
         
-        file = service.files().create(
+        # Eksekusi
+        request = service.files().create(
             body=file_metadata,
             media_body=media,
             fields='id',
             supportsAllDrives=True
-        ).execute()
+        )
+        
+        # Loop upload sampai selesai
+        response = None
+        while response is None:
+            status, response = request.next_chunk()
+            if status:
+                # (Opsional) Bisa tampilkan progress bar disini kalau file besar
+                pass
 
-        return True, file.get('id')
+        return True, response.get('id')
+        
     except Exception as e:
         return False, str(e)
 
