@@ -35,23 +35,20 @@ def append_to_sheet(new_row_data):
         return False, str(e)
 
 # ==========================================
-# 3. STATE MANAGEMENT
-# ==========================================
-if 'is_running' not in st.session_state: st.session_state.is_running = False
-if 'current_task_idx' not in st.session_state: st.session_state.current_task_idx = 0
-if 'current_page_num' not in st.session_state: st.session_state.current_page_num = 1
-if 'last_lap_time' not in st.session_state: st.session_state.last_lap_time = 0
-if 'log_data' not in st.session_state: st.session_state.log_data = []
-
-# ==========================================
 # 4. ADMIN PANEL (DINAMIS)
 # ==========================================
 with st.sidebar:
     st.header("⚙️ Admin Panel")
     
     # A. CONFIG JUMLAH HALAMAN
+    # Disesuaikan dengan skenario Anda:
+    # Tugas 1 (Login): 3 Hal
+    # Tugas 2 (Cari Nakes): 3 Hal
+    # Tugas 3 (Sertifikat): 4 Hal
+    # Tugas 4 (IMT): 3 Hal
+    # Tugas 5 (Tiket): 3 Hal
     st.subheader("1. Struktur Tugas")
-    config_input = st.text_input("Jml Halaman per Tugas (koma)", value="3, 3, 2")
+    config_input = st.text_input("Jml Halaman per Tugas (koma)", value="3, 3, 4, 3, 3")
     try:
         tasks_config = [int(x.strip()) for x in config_input.split(',') if x.strip().isdigit()]
     except:
@@ -61,17 +58,25 @@ with st.sidebar:
     st.subheader("2. Teks Panduan")
     st.caption("Format per baris -> Tugas-Hal : Instruksi")
     
-    # Default Text untuk memudahkan Admin pertama kali
-    default_scenario = """1-1 : Buka aplikasi, tekan tombol 'Masuk'.
-1-2 : Masukkan User: admin, Pass: 123.
-1-3 : Jika berhasil, tekan menu 'Beranda'.
-2-1 : Tekan menu 'Transfer'.
-2-2 : Masukkan nominal Rp 50.000.
-2-3 : Tekan Kirim dan tunggu sukses.
-3-1 : Tekan Profil di pojok kanan.
-3-2 : Scroll ke bawah dan tekan Logout."""
+    # Skenario Default yang sudah digabungkan sesuai permintaan
+    default_scenario = """1-1 : Pengguna mengklik tombol Masuk.
+1-2 : Pengguna memasukkan nomor telepon atau email.
+1-3 : Pengguna mengklik tombol Masuk, lalu memasukkan PIN.
+2-1 : Klik tombol fitur di bawah, lalu klik ikon 'Cari Nakes' (Cari Layanan Kesehatan).
+2-2 : Masukkan kata kunci nakes pada kolom pencarian.
+2-3 : Pengguna memilih tenaga kesehatan.
+3-1 : Di halaman fitur, klik ikon 'Sertifikat Vaksin' (Vaksin dan Imunisasi).
+3-2 : Pengguna mengklik Vaksin & Imunisasi Lainnya.
+3-3 : Pengguna mengklik salah satu laporan vaksin jika ada.
+3-4 : Pengguna mengunduh sertifikat.
+4-1 : Di halaman fitur, klik ikon 'Indeks Massa Tubuh' (Vaksin dan Imunisasi).
+4-2 : Pengguna mengklik tombol Tambah Data Baru.
+4-3 : Masukkan data pada kolom, lalu klik tombol Simpan.
+5-1 : Di halaman fitur, klik ikon 'Tiket Pemeriksaan' (Cek Kesehatan Gratis).
+5-2 : Klik Daftar (jika perlu), pilih jadwal, lalu klik Selanjutnya.
+5-3 : Cari nama tempat kesehatan di kolom pencarian, lalu pilih tempat kesehatan."""
 
-    scenario_raw = st.text_area("Edit Skenario Disini:", value=default_scenario, height=300)
+    scenario_raw = st.text_area("Edit Skenario Disini:", value=default_scenario, height=400)
     
     # Parsing Teks menjadi Dictionary Python
     SCENARIO_GUIDE = {}
