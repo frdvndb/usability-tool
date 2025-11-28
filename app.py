@@ -175,7 +175,7 @@ else:
     
     # 2. Tampilkan Kotak Panduan (Warna Biru)
     st.markdown(f"""
-    <div style="background-color: #e8f4f8; padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px;">
+    <div style=" padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px;">
         <h4 style="margin:0; color: #007bff; font-size: 14px; text-transform: uppercase;">Langkah {page_num}</h4>
         <h2 style="margin-top:5px; margin-bottom:0; font-size: 22px; font-weight: 600;">{instruction_text}</h2>
     </div>
