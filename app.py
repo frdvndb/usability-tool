@@ -5,15 +5,80 @@ from datetime import datetime
 from google.oauth2 import service_account
 import gspread
 
-# --- 1. KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="Usability Test", page_icon="📱", layout="centered")
+# ==========================================
+# 1. KONFIGURASI PANDUAN (EDIT BAGIAN INI)
+# ==========================================
+# Format Kunci: "NOMOR_TUGAS - NOMOR_HALAMAN"
+# Silakan ganti kata-katanya sesuai skenario skripsi Anda.
 
+SCENARIO_GUIDE = {
+    # --- TUGAS 1 (Misal: Login) ---
+    "1-1": "Buka aplikasi, lalu tekan tombol **'Masuk'** (Login).",
+    "1-2": "Masukkan Username: **user** dan Password: **123**, lalu tekan Enter.",
+    "1-3": "Jika berhasil Login, cari dan tekan menu **'Beranda'**.",
+    
+    # --- TUGAS 2 (Misal: Transfer) ---
+    "2-1": "Di halaman Beranda, tekan menu **'Transfer'**.",
+    "2-2": "Masukkan nominal transfer **Rp 50.000**.",
+    "2-3": "Tekan tombol **'Kirim'** dan tunggu bukti transfer muncul.",
+    
+    # --- TUGAS 3 (Misal: Logout) ---
+    "3-1": "Tekan icon **Profil** di pojok kanan atas.",
+    "3-2": "Scroll ke paling bawah, lalu tekan tombol **'Keluar'** (Logout)."
+}
 
+# Teks default jika Anda lupa mengisi nomor halaman tertentu
+DEFAULT_TEXT = "Silakan lanjutkan langkah sesuai alur aplikasi."
 
-# --- FUNGSI GOOGLE SHEETS ---
+# ==========================================
+# 2. SETUP HALAMAN & CSS
+# ==========================================
+st.set_page_config(page_title="Usability Guide", page_icon="📱", layout="centered")
+
+# CSS untuk:
+# 1. Menyembunyikan menu Streamlit
+# 2. Memaksa teks berwarna HITAM (agar terbaca di Dark Mode HP)
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            
+            /* Background Aplikasi */
+            .stApp {background-color: #f0f2f6;}
+            
+            /* Kartu Konten Putih */
+            div[data-testid="stVerticalBlock"] > div {
+                background-color: #ffffff;
+                padding: 20px;
+                border-radius: 15px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            }
+
+            /* Paksa Teks Jadi Hitam Gelap */
+            h1, h2, h3, h4, h5, h6, p, label, span, div, li {
+                color: #31333F !important;
+            }
+            
+            /* Input Field */
+            input[type="number"], div[data-baseweb="select"] {
+                color: #31333F !important;
+                background-color: #ffffff !important;
+                border: 1px solid #d6d6d6;
+            }
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
+# ==========================================
+# 3. FUNGSI KONEKSI GOOGLE SHEETS
+# ==========================================
 def append_to_sheet(new_row_data):
     try:
+        # Ambil credentials dari secrets.toml
         gcp_info = dict(st.secrets["gcp_service_account"])
+        
+        # Fix bug karakter newline pada private key
         if "private_key" in gcp_info:
             gcp_info["private_key"] = gcp_info["private_key"].replace("\\n", "\n")
         
@@ -23,45 +88,51 @@ def append_to_sheet(new_row_data):
                 'https://www.googleapis.com/auth/drive'
             ]
         )
+        
         client = gspread.authorize(creds)
         sheet_id = st.secrets["drive"]["sheet_id"] 
         sh = client.open_by_key(sheet_id)
         worksheet = sh.sheet1 
+        
+        # Upload Data
         worksheet.append_rows(new_row_data)
         return True, ""
     except Exception as e:
         return False, str(e)
 
-# --- STATE MANAGEMENT ---
+# ==========================================
+# 4. STATE MANAGEMENT (MEMORI BROWSER)
+# ==========================================
 if 'is_running' not in st.session_state: st.session_state.is_running = False
 if 'current_task_idx' not in st.session_state: st.session_state.current_task_idx = 0
 if 'current_page_num' not in st.session_state: st.session_state.current_page_num = 1
 if 'last_lap_time' not in st.session_state: st.session_state.last_lap_time = 0
-if 'start_global_time' not in st.session_state: st.session_state.start_global_time = 0
 if 'log_data' not in st.session_state: st.session_state.log_data = []
 
-# --- SIDEBAR ADMIN ---
+# ==========================================
+# 5. SIDEBAR ADMIN (TERSEMBUNYI)
+# ==========================================
 with st.sidebar:
     st.header("⚙️ Admin Panel")
-    config_input = st.text_input("Jml Halaman (cth: 3,2)", value="3, 3, 5")
-    scenario_input = st.text_area("Nama Skenario (Pisah baris)", 
-                                  value="Login Aplikasi\nTransfer Saldo\nLogout Akun")
+    st.caption("Atur jumlah halaman per tugas disini. Harus cocok dengan SCENARIO_GUIDE di kode.")
+    
+    # Default: Tugas 1 (3 hal), Tugas 2 (3 hal), Tugas 3 (2 hal)
+    config_input = st.text_input("Config Halaman (cth: 3,3,2)", value="3, 3, 2")
+    
     try:
         tasks_config = [int(x.strip()) for x in config_input.split(',') if x.strip().isdigit()]
-        task_names = [x.strip() for x in scenario_input.split('\n') if x.strip()]
     except:
         tasks_config = []
-        task_names = []
 
-# --- FUNGSI LOGIKA ---
+# ==========================================
+# 6. LOGIKA APLIKASI
+# ==========================================
 def start_test():
     st.session_state.is_running = True
     st.session_state.current_task_idx = 0
     st.session_state.current_page_num = 1
     st.session_state.log_data = []
-    now = time.time()
-    st.session_state.start_global_time = now
-    st.session_state.last_lap_time = now
+    st.session_state.last_lap_time = time.time()
 
 def next_step():
     now = time.time()
@@ -70,93 +141,107 @@ def next_step():
     idx = st.session_state.current_task_idx
     limit = tasks_config[idx] if idx < len(tasks_config) else 1
     
-    # Ambil Data Input (termasuk Klik Bad)
+    # Ambil Input Data
     click_total = st.session_state.get("inp_click", 0)
-    click_bad = st.session_state.get("inp_click_bad", 0) # <-- SUDAH DITAMBAHKAN
+    click_bad = st.session_state.get("inp_click_bad", 0)
     error_total = st.session_state.get("inp_error", 0)
     status = st.session_state.get("inp_status", "SUKSES")
     
-    record = {
-        "Tugas Ke": idx + 1,
-        "Halaman Ke": st.session_state.current_page_num,
-        "Status": status,
-        "Durasi": round(duration, 2),
-        "Klik Total": click_total,
-        "Klik Bad": click_bad,
-        "Error": error_total,
-        "Timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    }
-    
-    # Upload ke Sheets
+    # Format Data untuk Sheets
+    # Kolom: Tugas | Halaman | Status | Durasi | Klik Total | Klik Bad | Error | Waktu
     row = [[
-        record["Tugas Ke"], record["Halaman Ke"], record["Status"], 
-        str(record["Durasi"]).replace('.', ','), 
-        record["Klik Total"], record["Klik Bad"], record["Error"], record["Timestamp"]
+        idx + 1, 
+        st.session_state.current_page_num, 
+        status, 
+        str(round(duration, 2)).replace('.', ','), 
+        click_total, 
+        click_bad, 
+        error_total, 
+        datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     ]]
     
+    # Kirim ke Cloud
     ok, _ = append_to_sheet(row)
+    
     if ok:
-        st.toast("✅ Tersimpan!", icon="💾")
+        st.toast("✅ Tersimpan ke Google Sheets!", icon="☁️")
     else:
-        st.toast("⚠️ Tersimpan Lokal", icon="ww")
+        st.toast("⚠️ Koneksi lambat, tersimpan lokal sementara.", icon="📁")
 
-    # Navigasi
+    # Logika Navigasi (Pindah Halaman / Selesai)
     if st.session_state.current_page_num >= limit:
         st.session_state.current_task_idx += 1
         st.session_state.current_page_num = 1
+        
+        # Cek apakah semua tugas sudah beres
         if st.session_state.current_task_idx >= len(tasks_config):
             st.session_state.is_running = False
             st.balloons()
     else:
         st.session_state.current_page_num += 1
     
+    # Reset Timer
     st.session_state.last_lap_time = now
 
-# --- TAMPILAN UTAMA ---
-
+# ==========================================
+# 7. TAMPILAN USER INTERFACE (UI)
+# ==========================================
 st.title("📱 Usability Testing")
-st.markdown("---")
 
 if not st.session_state.is_running:
-    # WELCOME SCREEN
-    st.subheader("Selamat Datang")
-    st.write("Silakan tekan tombol di bawah jika sudah siap melakukan pengujian.")
-    st.button("🚀 MULAI TES", on_click=start_test, type="primary", use_container_width=True)
+    # --- HALAMAN DEPAN ---
+    st.info("👋 Selamat Datang. Aplikasi ini akan memandu Anda melakukan pengujian langkah demi langkah.")
+    st.write("Tekan tombol di bawah jika Anda sudah siap.")
+    st.button("🚀 MULAI PANDUAN", on_click=start_test, type="primary", use_container_width=True)
 
 else:
-    # ACTIVE SCREEN
+    # --- HALAMAN PENGUJIAN ---
+    
+    # 1. Tentukan Instruksi yang Mana
     idx = st.session_state.current_task_idx
     page_num = st.session_state.current_page_num
-    total_page = tasks_config[idx] if idx < len(tasks_config) else 99
-    nama_tugas = task_names[idx] if idx < len(task_names) else f"Tugas {idx+1}"
     
-    # Header Info
-    st.info(f"📂 **TUGAS:** {nama_tugas}")
-    st.caption(f"Langkah {page_num} dari {total_page}")
-    st.progress((idx) / len(tasks_config), text="Progress")
+    # Kunci dictionary (Misal: "1-1")
+    guide_key = f"{idx + 1}-{page_num}"
+    
+    # Ambil teks panduan
+    instruction_text = SCENARIO_GUIDE.get(guide_key, DEFAULT_TEXT)
+    
+    # 2. Tampilkan Kotak Panduan (Warna Biru)
+    st.markdown(f"""
+    <div style="background-color: #e8f4f8; padding: 20px; border-radius: 12px; border-left: 6px solid #007bff; margin-bottom: 25px;">
+        <h4 style="margin:0; color: #007bff; font-size: 14px; text-transform: uppercase;">Langkah {page_num}</h4>
+        <h2 style="margin-top:5px; margin-bottom:0; font-size: 22px; font-weight: 600;">{instruction_text}</h2>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # 3. Progress Bar Kecil
+    total_page = tasks_config[idx] if idx < len(tasks_config) else 99
+    st.progress(page_num / total_page, text=f"Progress Tugas {idx + 1}")
     
     st.divider()
     
-    # FORM INPUT LENGKAP
-    st.write("**Laporan Langkah Ini:**")
-    
+    # 4. Input Data Observasi
+    st.write("**📝 Laporan Pengguna:**")
     col1, col2 = st.columns(2)
     
     with col1:
         st.number_input("Total Klik", min_value=0, key="inp_click")
         st.number_input("Total Error", min_value=0, key="inp_error")
-        
     with col2:
-        # BAGIAN YANG ANDA MINTA ADA DISINI:
-        st.number_input("Klik Tidak Perlu", min_value=0, key="inp_click_bad", help="Salah pencet / klik kosong")
+        st.number_input("Klik Tidak Perlu", min_value=0, key="inp_click_bad")
         st.selectbox("Status", ["SUKSES", "GAGAL"], key="inp_status")
 
-    st.write("")
-    st.button("✅ SIMPAN & LANJUT", on_click=next_step, type="primary", use_container_width=True)
+    st.write("") # Spasi kosong
+    
+    # 5. Tombol Lanjut
+    st.button("✅ SUDAH, LANJUT LANGKAH BERIKUTNYA", on_click=next_step, type="primary", use_container_width=True)
 
-# FINISH SCREEN
+# --- HALAMAN SELESAI ---
 if not st.session_state.is_running and len(st.session_state.log_data) > 0:
-    st.success("🎉 Tes Selesai! Terima kasih.")
-    if st.button("Mulai Ulang"):
+    st.success("🎉 Tes Selesai! Terima kasih atas partisipasi Anda.")
+    st.caption("Data telah tersimpan otomatis ke sistem.")
+    
+    if st.button("Mulai Ulang (Responden Baru)"):
         st.session_state.log_data = []
         st.rerun()
