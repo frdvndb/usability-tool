@@ -9,8 +9,12 @@ import uuid  # Library untuk membuat ID acak
 # ==========================================
 # 1. SETUP HALAMAN
 # ==========================================
-st.set_page_config(page_title="Usability Guide", page_icon="📱", layout="centered")
-
+st.set_page_config(
+    page_title="Usability Guide", 
+    page_icon="📱", 
+    layout="centered",
+    initial_sidebar_state="collapsed" 
+)
 # ==========================================
 # 2. FUNGSI GOOGLE SHEETS (MODE BATCH)
 # ==========================================
