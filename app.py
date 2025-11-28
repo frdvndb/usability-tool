@@ -113,7 +113,7 @@ with st.sidebar:
 5-1 : Kembali ke Halaman Fitur (Tekan panah kiri atas sampai kembali). Klik ikon 'Tiket Pemeriksaan'.
 5-2 : Klik Daftar (jika perlu), pilih jadwal, lalu klik Selanjutnya.
 5-3 : Klik alamat biru yang berada di atas kolom pencarian.
-5-4 : Pilih lokasi di peta dan klik tombol Simpan.
+5-4 : Pilih lokasi dan klik tombol Simpan.
 5-5 : Masukkan kata kunci tempat kesehatan, lalu pilih salah satu tempat."""
 
     scenario_raw = st.text_area("Edit Skenario Disini:", value=default_scenario, height=400)
