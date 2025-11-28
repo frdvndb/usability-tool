@@ -20,6 +20,11 @@ def upload_to_drive(df, filename):
         # 1. Autentikasi menggunakan Secrets
         # Pastikan Anda sudah setting secrets.toml di Streamlit
         gcp_info = st.secrets["gcp_service_account"]
+
+        # Ini mengubah tulisan "\n" menjadi baris baru yang asli agar dikenali Google
+        if "private_key" in gcp_info:
+            gcp_info["private_key"] = gcp_info["private_key"].replace("\\n", "\n")
+
         folder_id = st.secrets["drive"]["folder_id"]
         
         creds = service_account.Credentials.from_service_account_info(
