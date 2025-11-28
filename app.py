@@ -223,8 +223,3 @@ if not st.session_state.is_running and len(st.session_state.log_data) > 0:
         mime="text/csv",
         type="primary"
     )
-
-    st.divider()
-    if st.button("Mulai Ulang (Responden Baru)"):
-        st.session_state.log_data = []
-        st.rerun()
