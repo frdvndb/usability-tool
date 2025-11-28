@@ -35,6 +35,15 @@ def append_to_sheet(new_row_data):
         return False, str(e)
 
 # ==========================================
+# 3. STATE MANAGEMENT
+# ==========================================
+if 'is_running' not in st.session_state: st.session_state.is_running = False
+if 'current_task_idx' not in st.session_state: st.session_state.current_task_idx = 0
+if 'current_page_num' not in st.session_state: st.session_state.current_page_num = 1
+if 'last_lap_time' not in st.session_state: st.session_state.last_lap_time = 0
+if 'log_data' not in st.session_state: st.session_state.log_data = []
+
+# ==========================================
 # 4. ADMIN PANEL (DINAMIS)
 # ==========================================
 with st.sidebar:
@@ -89,7 +98,6 @@ with st.sidebar:
             SCENARIO_GUIDE[key] = val
 
     st.success(f"Terdeteksi {len(SCENARIO_GUIDE)} langkah instruksi.")
-
 # ==========================================
 # 5. LOGIKA APLIKASI
 # ==========================================
