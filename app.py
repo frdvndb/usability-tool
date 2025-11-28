@@ -237,7 +237,7 @@ else:
 # 7. SCREEN SELESAI & DOWNLOAD
 # ==========================================
 if not st.session_state.is_running and len(st.session_state.log_data) > 0:
-    st.success("🎉 Tes Pertama atau kedua selesai! Terima kasih.")
+    st.success("🎉 Tes pertama atau kedua selesai! Terima kasih.")
     st.caption(f"User ID: {st.session_state.user_id}")
     st.caption("Data telah dikirim secara otomatis.")
     
