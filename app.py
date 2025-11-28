@@ -71,19 +71,21 @@ with st.sidebar:
     default_scenario = """1-1 : Pengguna mengklik tombol Masuk.
 1-2 : Pengguna memasukkan nomor telepon atau email.
 1-3 : Pengguna mengklik tombol Masuk, lalu memasukkan PIN.
-2-1 : Klik tombol fitur di bawah, lalu klik ikon 'Cari Nakes' (Cari Layanan Kesehatan).
+2-1 : Pastikan berada di Halaman Fitur (Klik tombol fitur di bagian bawah). Klik ikon 'Cari Nakes'.
 2-2 : Masukkan kata kunci nakes pada kolom pencarian.
 2-3 : Pengguna memilih tenaga kesehatan.
-3-1 : Di halaman fitur, klik ikon 'Sertifikat Vaksin' (Vaksin dan Imunisasi).
+3-1 : Kembali ke Halaman Fitur (Tekan panah kiri atas sampai kembali). Klik ikon 'Sertifikat Vaksin'.
 3-2 : Pengguna mengklik Vaksin & Imunisasi Lainnya.
 3-3 : Pengguna mengklik salah satu laporan vaksin jika ada.
 3-4 : Pengguna mengunduh sertifikat.
-4-1 : Di halaman fitur, klik ikon 'Indeks Massa Tubuh' (Vaksin dan Imunisasi).
+4-1 : Kembali ke Halaman Fitur (Tekan panah kiri atas sampai kembali). Klik ikon 'Indeks Massa Tubuh'.
 4-2 : Pengguna mengklik tombol Tambah Data Baru.
 4-3 : Masukkan data pada kolom, lalu klik tombol Simpan.
-5-1 : Di halaman fitur, klik ikon 'Tiket Pemeriksaan' (Cek Kesehatan Gratis).
+5-1 : Kembali ke Halaman Fitur (Tekan panah kiri atas sampai kembali). Klik ikon 'Tiket Pemeriksaan'.
 5-2 : Klik Daftar (jika perlu), pilih jadwal, lalu klik Selanjutnya.
-5-3 : Cari nama tempat kesehatan di kolom pencarian, lalu pilih tempat kesehatan."""
+5-3 : Klik alamat biru yang berada di atas kolom pencarian.
+5-4 : Pilih lokasi di peta dan klik tombol Simpan.
+5-5 : Masukkan kata kunci tempat kesehatan, lalu pilih salah satu tempat."""
 
     scenario_raw = st.text_area("Edit Skenario Disini:", value=default_scenario, height=400)
     
