@@ -2,133 +2,56 @@ import streamlit as st
 import time
 import pandas as pd
 from datetime import datetime
-import io
 from google.oauth2 import service_account
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
+import gspread # Library khusus untuk Google Sheets
 
-st.set_page_config(page_title="Usability Logger (Debug Mode)", page_icon="🔧")
+# --- KONFIGURASI HALAMAN ---
+st.set_page_config(page_title="Usability Logger (Sheets)", page_icon="📊")
 
-# --- BAGIAN 1: FUNGSI DIAGNOSA & UPLOAD ---
-def get_drive_service():
+# --- FUNGSI KONEKSI KE GOOGLE SHEETS ---
+def append_to_sheet(new_row_data):
+    """
+    Fungsi ini mengirim data baris per baris ke Google Sheets
+    tanpa memakan kuota penyimpanan Robot.
+    """
     try:
-        # Ambil credentials
+        # 1. Ambil Credentials dari Secrets
+        # Menggunakan .get() atau dict() agar aman
         gcp_info = dict(st.secrets["gcp_service_account"])
         
-        # Bersihkan spasi yang mungkin tidak sengaja terbawa
+        # Perbaikan Bug "\n" pada Private Key
         if "private_key" in gcp_info:
             gcp_info["private_key"] = gcp_info["private_key"].replace("\\n", "\n")
         
+        # 2. Autentikasi Scope (Izin)
         creds = service_account.Credentials.from_service_account_info(
-            gcp_info, scopes=['https://www.googleapis.com/auth/drive']
-        )
-        return build('drive', 'v3', credentials=creds), None
-    except Exception as e:
-        return None, str(e)
-
-def cek_koneksi_folder():
-    service, error = get_drive_service()
-    if error:
-        return False, f"Gagal Login Robot: {error}"
-    
-    # Ambil Folder ID dan bersihkan spasi
-    folder_id = st.secrets["drive"]["folder_id"].strip() 
-    
-    try:
-        # Coba mengintip metadata folder
-        folder = service.files().get(
-            fileId=folder_id, 
-            fields="name, capabilities",
-            supportsAllDrives=True
-        ).execute()
-        
-        # Cek apakah robot punya izin tulis?
-        bisa_edit = folder.get('capabilities', {}).get('canAddChildren', False)
-        nama_folder = folder.get('name')
-        
-        if not bisa_edit:
-            return False, f"Robot bisa melihat folder '{nama_folder}', TAPI STATUSNYA HANYA 'VIEWER'. Harap ubah ke 'EDITOR'."
-        
-        return True, f"SUKSES! Robot terhubung ke folder: **{nama_folder}** (Izin: Editor)"
-        
-    except Exception as e:
-        return False, f"Robot TIDAK BISA menemukan folder ID **{folder_id}**. Pastikan ID benar dan sudah di-share ke email robot."
-
-# --- Update bagian Import di paling atas ---
-from googleapiclient.http import MediaIoBaseUpload
-
-# --- GANTI FUNGSI upload_to_drive DENGAN INI ---
-def upload_to_drive(df, filename):
-    service, error = get_drive_service()
-    if error: return False, error
-    
-    folder_id = st.secrets["drive"]["folder_id"].strip()
-    
-    try:
-        # Konversi ke CSV
-        csv_buffer = io.BytesIO()
-        df.to_csv(csv_buffer, index=False)
-        csv_buffer.seek(0) # Reset pointer
-
-        # Metadata
-        file_metadata = {
-            'name': filename,
-            'parents': [folder_id]
-        }
-
-        # --- PERBAIKAN DISINI: Resumable=True ---
-        # Ini mengubah metode upload menjadi bertahap, seringkali bypass limit kuota 0
-        media = MediaIoBaseUpload(
-            csv_buffer, 
-            mimetype='text/csv',
-            resumable=True  # <--- KUNCI PERBAIKANNYA
+            gcp_info, scopes=[
+                'https://www.googleapis.com/auth/spreadsheets',
+                'https://www.googleapis.com/auth/drive'
+            ]
         )
         
-        # Eksekusi
-        request = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id',
-            supportsAllDrives=True
-        )
+        # 3. Login ke GSpread Client
+        client = gspread.authorize(creds)
         
-        # Loop upload sampai selesai
-        response = None
-        while response is None:
-            status, response = request.next_chunk()
-            if status:
-                # (Opsional) Bisa tampilkan progress bar disini kalau file besar
-                pass
-
-        return True, response.get('id')
+        # 4. Buka Spreadsheet Berdasarkan ID
+        sheet_id = st.secrets["drive"]["sheet_id"] 
+        sh = client.open_by_key(sheet_id)
         
+        # Pilih Halaman Pertama (Sheet1)
+        worksheet = sh.sheet1 
+        
+        # 5. Tambahkan Baris Baru (Append)
+        worksheet.append_rows(new_row_data)
+        
+        return True, "Sukses"
     except Exception as e:
         return False, str(e)
 
-# --- BAGIAN 2: TAMPILAN DIAGNOSA (Hanya Muncul di Atas) ---
-st.title("🔧 Mode Perbaikan Koneksi")
+# --- JUDUL APLIKASI ---
+st.title("📊 Usability Logger -> Google Sheets")
 
-# Tombol Cek
-if st.button("🔍 CEK KONEKSI GOOGLE DRIVE SEKARANG"):
-    with st.spinner("Sedang menghubungi Google..."):
-        sukses, pesan = cek_koneksi_folder()
-        if sukses:
-            st.success(pesan)
-        else:
-            st.error(pesan)
-            st.warning("Pastikan ID Folder di secrets.toml tidak ada spasi di depan/belakang.")
-            # Tampilkan Email untuk memudahkan copy-paste ulang
-            try:
-                email = st.secrets["gcp_service_account"]["client_email"]
-                st.info(f"Email Robot: `{email}` (Pastikan email ini di-invite)")
-            except:
-                pass
-
-st.divider()
-
-# --- BAGIAN 3: APLIKASI UTAMA (Original) ---
-# (Logika aplikasi Anda berjalan normal di bawah ini)
-
+# --- INISIALISASI STATE (MEMORY) ---
 if 'log_data' not in st.session_state: st.session_state.log_data = []
 if 'is_running' not in st.session_state: st.session_state.is_running = False
 if 'tasks_config' not in st.session_state: st.session_state.tasks_config = []
@@ -137,32 +60,44 @@ if 'current_page_num' not in st.session_state: st.session_state.current_page_num
 if 'last_lap_time' not in st.session_state: st.session_state.last_lap_time = 0
 if 'start_global_time' not in st.session_state: st.session_state.start_global_time = 0
 
+# --- FUNGSI LOGIKA: MULAI ---
 def start_observation():
     try:
         raw = st.session_state.config_input
+        # Parsing input "3, 2, 5" menjadi list [3, 2, 5]
         configs = [int(x.strip()) for x in raw.split(',') if x.strip().isdigit()]
+        
         if not configs:
-            st.error("Format salah!")
+            st.error("Format konfigurasi salah! Masukkan angka dipisah koma.")
             return
+        
+        # Reset Variable
         st.session_state.tasks_config = configs
         st.session_state.is_running = True
         st.session_state.current_task_idx = 0
         st.session_state.current_page_num = 1
         st.session_state.log_data = []
+        
+        # Mulai Waktu
         now = time.time()
         st.session_state.start_global_time = now
         st.session_state.last_lap_time = now
+        
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error memulai: {e}")
 
+# --- FUNGSI LOGIKA: SIMPAN & LANJUT ---
 def save_and_next():
     now = time.time()
+    # Hitung Durasi
     duration = now - st.session_state.last_lap_time
     total_elapsed = now - st.session_state.start_global_time
+    
     current_idx = st.session_state.current_task_idx
     limit = st.session_state.tasks_config[current_idx]
     
-    new_record = {
+    # Siapkan Data Record (Dict untuk lokal)
+    record = {
         "Tugas Ke": current_idx + 1,
         "Halaman Ke": st.session_state.current_page_num,
         "Status": st.session_state.input_status,
@@ -170,46 +105,99 @@ def save_and_next():
         "Klik Total": st.session_state.input_click_total,
         "Klik Bad": st.session_state.input_click_bad,
         "Error": st.session_state.input_error,
-        "Timestamp": datetime.now().strftime('%H:%M:%S')
+        "Timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
-    st.session_state.log_data.append(new_record)
+    st.session_state.log_data.append(record)
     
+    # --- AUTO UPLOAD KE SHEETS ---
+    # Ubah format menjadi List of List [[col1, col2, ...]] sesuai urutan kolom Sheet
+    row_to_upload = [[
+        record["Tugas Ke"],
+        record["Halaman Ke"],
+        record["Status"],
+        str(record["Durasi"]).replace('.', ','), # Opsional: ganti titik jadi koma jika Excel Indo
+        record["Klik Total"],
+        record["Klik Bad"],
+        record["Error"],
+        record["Timestamp"]
+    ]]
+    
+    # Kirim Data
+    ok, msg = append_to_sheet(row_to_upload)
+    
+    if not ok:
+        st.error(f"⚠️ Gagal simpan ke Cloud: {msg}")
+    else:
+        # Tampilkan notifikasi kecil (Toast) agar tidak mengganggu
+        st.toast(f"✅ Data Tugas {current_idx+1}-Hal {st.session_state.current_page_num} tersimpan!", icon="☁️")
+
+    # --- LOGIKA PINDAH HALAMAN ---
     if st.session_state.current_page_num >= limit:
+        # Pindah Tugas
         st.session_state.current_task_idx += 1
         st.session_state.current_page_num = 1
+        
+        # Cek Apakah Semua Tugas Selesai?
         if st.session_state.current_task_idx >= len(st.session_state.tasks_config):
             st.session_state.is_running = False
-            
-            # AUTO UPLOAD
-            with st.spinner('Upload ke Drive...'):
-                df_final = pd.DataFrame(st.session_state.log_data)
-                fname = f"Usability_{datetime.now().strftime('%Y-%m-%d_%H-%M')}.csv"
-                ok, msg = upload_to_drive(df_final, fname)
-                if ok:
-                    st.balloons()
-                    st.success(f"✅ Tersimpan di Drive! (ID: {msg})")
-                else:
-                    st.error(f"Gagal Upload: {msg}")
+            st.balloons()
+            st.success("🏁 PENGUJIAN SELESAI! Semua data sudah masuk ke Google Sheets.")
     else:
+        # Lanjut Halaman Berikutnya
         st.session_state.current_page_num += 1
+        
+    # Reset Timer Lap
     st.session_state.last_lap_time = now
 
-# UI UTAMA
+# --- TAMPILAN USER INTERFACE (UI) ---
+
 if not st.session_state.is_running:
-    with st.expander("Konfigurasi & Mulai", expanded=True):
-        st.text_input("Config Halaman", value="1, 1", key="config_input") # Default kecil buat tes
-        st.button("MULAI OBSERVASI", on_click=start_observation, type="primary")
+    # --- UI SETUP ---
+    with st.expander("⚙️ Konfigurasi & Mulai", expanded=True):
+        st.caption("Masukkan jumlah halaman per tugas. Contoh: `3, 3, 5` artinya Tugas 1 (3 hal), Tugas 2 (3 hal), dst.")
+        st.text_input("Susunan Halaman", value="3, 3, 4, 3, 5", key="config_input")
+        st.button("MULAI OBSERVASI ▶️", on_click=start_observation, type="primary")
+        
+    # Tampilkan Data Lokal jika ada sisa sesi sebelumnya
+    if st.session_state.log_data:
+        st.divider()
+        st.write("Data sesi terakhir (Backup Lokal):")
+        st.dataframe(pd.DataFrame(st.session_state.log_data))
+
 else:
+    # --- UI BERJALAN ---
     task_now = st.session_state.current_task_idx + 1
     page_now = st.session_state.current_page_num
-    st.info(f"TUGAS {task_now} | Halaman {page_now}")
+    total_page_current = st.session_state.tasks_config[st.session_state.current_task_idx]
     
-    col1, col2 = st.columns(2)
-    with col1:
-        st.number_input("Total Klik", key="input_click_total", min_value=0)
-        st.number_input("Total Error", key="input_error", min_value=0)
-    with col2:
-        st.number_input("Klik Tidak Perlu", key="input_click_bad", min_value=0)
-        st.selectbox("Status", ["SUKSES", "GAGAL"], key="input_status")
+    # Header Info
+    st.info(f"📝 **SEDANG BERJALAN: TUGAS {task_now}** | Halaman {page_now} dari {total_page_current}")
+    
+    # Input Form (Layout 2 Kolom)
+    with st.container(border=True):
+        col1, col2 = st.columns(2)
         
-    st.button("NEXT ➡️", on_click=save_and_next, type="primary")
+        with col1:
+            st.number_input("✅ Total Klik", min_value=0, value=0, key="input_click_total")
+            st.number_input("❌ Total Error", min_value=0, value=0, key="input_error")
+            
+        with col2:
+            st.number_input("⚠️ Klik Tidak Perlu", min_value=0, value=0, key="input_click_bad")
+            st.selectbox("Status Tugas", ["SUKSES", "GAGAL"], key="input_status")
+            
+        st.write("") # Spacer
+        st.button("SIMPAN & LANJUT ➡️", on_click=save_and_next, type="primary", use_container_width=True)
+
+# --- BACKUP DOWNLOAD ---
+if len(st.session_state.log_data) > 0:
+    st.divider()
+    with st.expander("📂 Download Backup Manual (CSV)"):
+        df = pd.DataFrame(st.session_state.log_data)
+        st.dataframe(df)
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            "Download CSV",
+            csv,
+            f"Backup_Usability_{datetime.now().strftime('%H%M%S')}.csv",
+            "text/csv"
+        )
