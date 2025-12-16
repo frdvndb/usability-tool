@@ -221,7 +221,7 @@ if not st.session_state.is_running:
         """)
     # -------------------------------------
 
-    st.button("🚀 MULAI PANDUAN", on_click=start_test, type="primary", use_container_width=True)
+    st.button("🚀 MULAI", on_click=start_test, type="primary", use_container_width=True)
     st.caption(f"ID Sesi Anda: {st.session_state.user_id}")
 
 else:
