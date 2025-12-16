@@ -199,6 +199,28 @@ st.title("📱 Usability Testing")
 
 if not st.session_state.is_running:
     st.info("👋 Selamat Datang. Aplikasi ini akan memandu Anda melakukan pengujian.") 
+
+ # --- PENAMBAHAN PANDUAN (EXPANDER) ---
+    with st.expander("📖 Panduan Definisi & Cara Pengisian (Baca Disini)"):
+        st.markdown("""
+        **1. Total Klik**
+        * Isi dengan jumlah **seluruh ketukan jari** ke layar yang dilakukan pengguna selama mengerjakan tugas ini.
+        * Mencakup klik yang benar maupun yang salah.
+                    
+        **2. Klik Tidak Perlu**
+        * Isi dengan jumlah klik yang sifatnya **pemborosan** dan tidak memajukan tugas.
+        * *Contoh:* Menekan tombol **Kembali (Back)**, tombol **Close (X)**, atau mengetuk area kosong di layar karena bingung.
+
+        **3. Total Kesalahan**
+        * Isi dengan jumlah tindakan yang **menyimpang dari alur tugas**.
+        * *Contoh:* Salah masuk menu, salah ketik data input, atau menekan tombol yang salah fungsi.
+
+        **4. Status**
+        * **SUKSES:** Pengguna berhasil menyelesaikan langkah tersebut.
+        * **GAGAL:** Pengguna menyerah atau tidak bisa melanjutkan lagi.
+        """)
+    # -------------------------------------
+
     st.button("🚀 MULAI PANDUAN", on_click=start_test, type="primary", use_container_width=True)
     st.caption(f"ID Sesi Anda: {st.session_state.user_id}")
 
