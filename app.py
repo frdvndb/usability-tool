@@ -109,7 +109,7 @@ with st.sidebar:
 3-3 : Pengguna mengklik salah satu laporan vaksin jika ada.
 3-4 : Pengguna mengunduh sertifikat.
 4-1 : Kembali ke Halaman Fitur (Tekan panah kiri atas sampai kembali). Klik ikon 'Indeks Massa Tubuh'.
-4-2 : Pengguna mengklik tombol Tambah Data Baru.
+4-2 : Pengguna mengklik tombol Mulai Catat/Tambah Data Baru.
 4-3 : Masukkan data pada kolom, lalu klik tombol Simpan.
 5-1 : Kembali ke Halaman Fitur (Tekan panah kiri atas sampai kembali). Klik ikon 'Tiket Pemeriksaan'.
 5-2 : Klik Daftar (jika perlu), pilih jadwal, lalu klik Selanjutnya.
